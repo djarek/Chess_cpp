@@ -1,0 +1,98 @@
+# depslib dependency file v1.0
+1402099710 source:/home/damian/Programowanie/lab9_gra/main.cpp
+	"application.h"
+	"configmanager.h"
+	"game.h"
+	"assetmanager.h"
+	"moves.h"
+	"bitboard.h"
+	"moves.h"
+
+1402090881 source:/home/damian/Programowanie/lab9_gra/application.cpp
+	"application.h"
+
+1401412894 /home/damian/Programowanie/lab9_gra/application.h
+	"mainwindow.h"
+	"framework/widget.h"
+
+1401583241 /home/damian/Programowanie/lab9_gra/mainwindow.h
+	<SDL2/SDL.h>
+	<vector>
+	<functional>
+	"framework/widget.h"
+	"boost/signals2.hpp"
+
+1401591508 /home/damian/Programowanie/lab9_gra/framework/widget.h
+	<iostream>
+	<SDL2/SDL.h>
+
+1401885684 source:/home/damian/Programowanie/lab9_gra/mainwindow.cpp
+	"mainwindow.h"
+	"application.h"
+	"globals.h"
+	"board.h"
+
+1401552371 /home/damian/Programowanie/lab9_gra/configmanager.h
+	<map>
+	<string>
+	<boost/variant.hpp>
+
+1401580016 source:/home/damian/Programowanie/lab9_gra/configmanager.cpp
+	"configmanager.h"
+
+1402100513 /home/damian/Programowanie/lab9_gra/globals.h
+	"configmanager.h"
+	"application.h"
+	"game.h"
+	"assetmanager.h"
+
+1401885710 source:/home/damian/Programowanie/lab9_gra/board.cpp
+	"board.h"
+	"globals.h"
+
+1401731726 /home/damian/Programowanie/lab9_gra/board.h
+	"framework/widget.h"
+	"game.h"
+
+1402141974 source:/home/damian/Programowanie/lab9_gra/game.cpp
+	"game.h"
+	<iostream>
+	"globals.h"
+
+1402142274 /home/damian/Programowanie/lab9_gra/game.h
+	<vector>
+	<string>
+	"bitboard.h"
+	"moves.h"
+	"enums.h"
+
+1401553743 source:/home/damian/Programowanie/lab9_gra/assetmanager.cpp
+	"assetmanager.h"
+	"globals.h"
+	<SDL2/SDL_image.h>
+
+1401554366 /home/damian/Programowanie/lab9_gra/assetmanager.h
+	<map>
+	<string>
+	<SDL2/SDL.h>
+	"framework/widget.h"
+
+1402060691 /home/damian/Programowanie/lab9_gra/bitboard.h
+	<string>
+
+1402142313 /home/damian/Programowanie/lab9_gra/moves.h
+	"enums.h"
+	"bitboard.h"
+	<vector>
+
+1402058148 source:/home/damian/Programowanie/lab9_gra/bitboard.cpp
+	"bitboard.h"
+	<iostream>
+
+1402105541 source:/home/damian/Programowanie/lab9_gra/moves.cpp
+	"moves.h"
+	"game.h"
+
+1402101035 /home/damian/Programowanie/lab9_gra/enums.h
+	<cstdint>
+
