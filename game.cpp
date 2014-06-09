@@ -61,10 +61,6 @@ void Game::resetGame()
     spawnPiece(PieceType::Queen, Position(3, 7), Player::White);
     spawnPiece(PieceType::King, Position(4, 7), Player::White);
 
-    printBitBoard(m_bitState.getBitBoard(Player::Black, PieceType::Pawn));
-    Position p(7, 6);
-        auto ret = findPieceAtColumnRay(p, false);
-        std::cout << "ret"<< (int32_t)ret.x << (int32_t)ret.y << std::endl;
     m_gameStatus = inProgress;
 }
 
@@ -400,7 +396,7 @@ bool Game::makeMove(const Position& source, const Position& destination, const b
         {
             m_KingPos[m_playerToMove] = destination;
         }
-        if(mateCheck && isKingChecked(m_KingPos[m_playerToMove], m_playerToMove))
+        if(isKingChecked(m_KingPos[m_playerToMove], m_playerToMove))
         {
             restoreState();
             return false;
@@ -654,6 +650,11 @@ bool Game::isMated(const CheckType check, const Player player)
             {
                 restoreState();
                 m_playerToMove = getOtherPlayer(m_playerToMove);
+                #ifdef DEBUG
+                std::cout << "Found move: frompos= " << move.fromPos.x
+                          << " " << move.fromPos.y << " topos= " << move.toPos.x
+                          << " " << move.toPos.y << std::endl;
+                #endif //DEBUG
                 return false;
             }
             restoreState();
@@ -668,6 +669,11 @@ bool Game::isMated(const CheckType check, const Player player)
             if(makeMove(move.fromPos, move.toPos, false))
             {
                 restoreState();
+                #ifdef DEBUG
+                std::cout << "Found move: frompos= " << (int32_t)move.fromPos.x
+                          << " " << (int32_t)move.fromPos.y << " topos= " << (int32_t)move.toPos.x
+                          << " " << (int32_t)move.toPos.y << std::endl;
+                #endif //DEBUG
                 m_playerToMove = getOtherPlayer(m_playerToMove);
                 return false;
             }
