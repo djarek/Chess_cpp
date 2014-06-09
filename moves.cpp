@@ -10,10 +10,6 @@ const uint8_t RANK2 = 5;
 const uint8_t RANK1 = 6;
 const uint8_t RANK0 = 7;
 
-BitBoard PAWN_ATTACKS[2][8][8];
-BitBoard KNIGHT_ATTACKS[8][8];
-BitBoard KING_ATTACKS[8][8];
-
 const BitBoard KNIGHT_MOVES //At (2,2)
 {
 ((uint64_t)1 << 1)+
@@ -148,7 +144,7 @@ BitBoard generatePawnAttacksAt(const uint8_t x, const uint8_t y, const Player at
     return ret;
 }
 
-void init()
+void MoveGenerator::init()
 {
     for (uint8_t player = Player::White; player <= Player::Black; ++player)
     {
@@ -165,17 +161,17 @@ void init()
 
 }
 
-BitBoard getPawnAttackersAt(const uint8_t x, const uint8_t y, const Player attackedPlayer)
+BitBoard MoveGenerator::getPawnAttackersAt(const uint8_t x, const uint8_t y, const Player attackedPlayer)
 {
     return PAWN_ATTACKS[attackedPlayer][x][y];
 }
 
-BitBoard getKnightAttackersAt(const uint8_t x, const uint8_t y)
+BitBoard MoveGenerator::getKnightAttackersAt(const uint8_t x, const uint8_t y)
 {
     return KNIGHT_ATTACKS[x][y];
 }
 
-BitBoard getKingAttackerAt(const uint8_t x, const uint8_t y)
+BitBoard MoveGenerator::getKingAttackerAt(const uint8_t x, const uint8_t y)
 {
     return KING_ATTACKS[x][y];
 }
@@ -227,74 +223,15 @@ BitBoard BOTTOM_LEFT_DIAGONAL(
 
 void test()
 {
-    init();
+
     auto bb = KING_MOVES;
     printBitBoard(bb);
 }
 
-
-/*
-BitBoard getBottomRightPossibleMoves(uint8_t x, uint8_t y, uint8_t)
-{
-    BitBoard bb = BOTTOM_RIGHT_DIAGONAL;
-    bb << y*8;
-    for(uint8_t i = 0; i < x; ++i)
-    {
-        bb << 1;
-    }
-    return bb;
-}
-
-BitBoard getBottomLeftPossibleMoves(uint8_t x, uint8_t, uint8_t)
-{
-    BitBoard bb = BOTTOM_LEFT_DIAGONAL;
-    //bb.getBoard() << y*8;
-    for(uint8_t i = 0; i < x; ++i)
-    {
-        //bb >> 1;
-
-    }
-    return bb;
-}
-
-BitBoard getBottomRightPossibleMoves(uint8_t x, uint8_t y, uint8_t n = 8)
-{
-    BitBoard bb;
-    for(uint8_t i = 0; i < n; ++i)
-    {
-        if(x+y <= i)
-            bb.getBoard() += (uint64_t)1 << 9*(i)+x-y;
-    }
-    return bb;
-}
-
-BitBoard getBottomLeftPossibleMoves(uint8_t x, uint8_t y, uint8_t n = 8)
-{
-    BitBoard bb;
-    for(uint8_t i = 0; i < n; ++i)
-    {
-        if(x+y <= i)
-            bb.getBoard() += (uint64_t)1 << 7*(i)+x-y;
-    }
-    return bb;
-}*/
-
-/*
-"01010000"
-"10001000"
-"00100000"
-"10001000"
-"01010000"
-"00000000"
-"00000000"
-"00000000"
-*/
-
-
 const int8_t knightDeltaX[] = {-2, -2, -1, -1, 1,  1,  2, 2};
 const int8_t knightDeltaY[] = {-1,  1, -2,  2, 2, -2, -1, 1};
 
-void MoveGenerator::generateKnightMoves(const Game& game, const Player& player, MoveVec& result)
+void MoveGenerator::generateKnightMoves(const Game& game, const Player& player, MoveVec& result) const
 {
     std::vector<Position> knights;
     for(uint8_t x = 0; x < 8; ++x)
@@ -339,7 +276,7 @@ void MoveGenerator::generateKnightMoves(const Game& game, const Player& player, 
 const int8_t kingDeltaX[] = {0,  0, 1, 1,  1, -1, -1, -1};
 const int8_t kingDeltaY[] = {1, -1, 0, 1, -1, -1,  0,  1};
 
-void MoveGenerator::generateKingMoves(const Game& game, const Player& player, MoveVec& result)
+void MoveGenerator::generateKingMoves(const Game& game, const Player& player, MoveVec& result) const
 {
     Position kingPos = game.m_KingPos[player];
     int8_t newX, newY;
@@ -387,7 +324,69 @@ void MoveGenerator::generateKingMoves(const Game& game, const Player& player, Mo
     }
 }
 
-void MoveGenerator::generateRookSliderMoves(const Game& game, const Player& player, MoveVec& result)
+void MoveGenerator::generatePawnMoves(const Game& game, const Player& player, MoveVec& result) const
+{
+    std::vector<Position> pawns;
+    for(uint8_t x = 0; x < 8; ++x)
+    {
+        for(uint8_t y = 0; y < 8; ++y)
+        {
+            const auto& piece = game.getPiece(x,y);
+            if((piece.type == PieceType::Pawn) && piece.owner == player)
+                pawns.push_back(Position(x, y));
+        }
+    }
+    int8_t colorModifier = 1;
+    if(player == Player::White)
+    {
+        colorModifier = -1;
+    }
+    for(const auto& pawnPos : pawns)
+    {
+        struct Move newMove;
+        newMove.fromPos = pawnPos;
+        //1 tile pushes
+        if(game.getPiece(pawnPos.x, pawnPos.y+colorModifier).type == PieceType::Empty)
+        {
+            newMove.toPos = Position(pawnPos.x, pawnPos.y+colorModifier);
+            newMove.type  = MoveType::Move;
+            result.push_back(newMove);
+        }
+        //normal pawn captures
+        if(pawnPos.x-1 >= 0 && game.getPiece(pawnPos.x-1, pawnPos.y+colorModifier).type != PieceType::Empty)
+        {
+            newMove.toPos = Position(pawnPos.x-1, pawnPos.y+colorModifier);
+            newMove.type  = MoveType::Capture;
+            result.push_back(newMove);
+        }
+        if(pawnPos.x+1 < 8 && game.getPiece(pawnPos.x+1, pawnPos.y+colorModifier).type != PieceType::Empty)
+        {
+            newMove.toPos = Position(pawnPos.x+1, pawnPos.y+colorModifier);
+            newMove.type  = MoveType::Capture;
+            result.push_back(newMove);
+        }
+
+        //pawn rush
+        if(!game.getPiece(pawnPos).hasMoved
+           && game.getPiece(pawnPos.x, pawnPos.y+colorModifier).type == PieceType::Empty
+           && game.getPiece(pawnPos.x, pawnPos.y+2*colorModifier).type == PieceType::Empty)
+        {
+            newMove.toPos = Position(pawnPos.x, pawnPos.y+2*colorModifier);
+            newMove.type  = MoveType::PawnRush;
+            result.push_back(newMove);
+        }
+
+        //EnPassant capture
+        if(game.m_lastPawnRush.y == pawnPos.y && std::abs(game.m_lastPawnRush.x-pawnPos.x) == 1)
+        {
+            newMove.toPos = Position(game.m_lastPawnRush.x, game.m_lastPawnRush.y + colorModifier);
+            newMove.type  = MoveType::EnPassant;
+            result.push_back(newMove);
+        }
+    }
+}
+
+void MoveGenerator::generateRookSliderMoves(const Game& game, const Player& player, MoveVec& result) const
 {
     std::vector<Position> rooks;
     for(uint8_t x = 0; x < 8; ++x)
@@ -483,7 +482,7 @@ void MoveGenerator::generateRookSliderMoves(const Game& game, const Player& play
     }
 }
 
-void MoveGenerator::generateBishopSliderMoves(const Game& game, const Player& player, MoveVec& result)
+void MoveGenerator::generateBishopSliderMoves(const Game& game, const Player& player, MoveVec& result) const
 {
     std::vector<Position> bishops;
     for(uint8_t x = 0; x < 8; ++x)
@@ -497,8 +496,8 @@ void MoveGenerator::generateBishopSliderMoves(const Game& game, const Player& pl
     }
     for(const auto& bishopPos : bishops)
     {
-        int8_t minCoordinate = std::min(bishopPos.x,bishopPos.y);
-        for(int8_t i = 1; i <= minCoordinate; ++i)
+        int8_t moveNum = numberOfMovesMainDiagonalUp[bishopPos.x][bishopPos.y];
+        for(int8_t i = 1; i <= moveNum; ++i)
         {
             struct Move newMove;
             newMove.fromPos = bishopPos;
@@ -518,8 +517,8 @@ void MoveGenerator::generateBishopSliderMoves(const Game& game, const Player& pl
             result.push_back(newMove);
         }
 
-        int8_t maxCoordinate = 7-std::max(bishopPos.x, bishopPos.y);
-        for(int8_t i = 1; i <= maxCoordinate; ++i)
+        moveNum = numberOfMovesMainDiagonalDown[bishopPos.x][bishopPos.y];
+        for(int8_t i = 1; i <= moveNum; ++i)
         {
             struct Move newMove;
             newMove.fromPos = bishopPos;
@@ -539,8 +538,8 @@ void MoveGenerator::generateBishopSliderMoves(const Game& game, const Player& pl
             result.push_back(newMove);
         }
 
-        int8_t moves = numberOfMovesDiagonalUp[bishopPos.x][bishopPos.y];
-        for(int8_t i = 1; i <= moves; ++i)
+        moveNum = numberOfMovesAntiDiagonalUp[bishopPos.x][bishopPos.y];
+        for(int8_t i = 1; i <= moveNum; ++i)
         {
             struct Move newMove;
             newMove.fromPos = bishopPos;
@@ -560,8 +559,8 @@ void MoveGenerator::generateBishopSliderMoves(const Game& game, const Player& pl
             result.push_back(newMove);
         }
 
-        moves = numberOfMovesDiagonalUp[bishopPos.x][bishopPos.y];
-        for(int8_t i = 1; i <= moves; ++i)
+        moveNum = numberOfMovesAntiDiagonalUp[bishopPos.x][bishopPos.y];
+        for(int8_t i = 1; i <= moveNum; ++i)
         {
             struct Move newMove;
             newMove.fromPos = bishopPos;
@@ -582,3 +581,21 @@ void MoveGenerator::generateBishopSliderMoves(const Game& game, const Player& pl
         }
     }
 }
+
+MoveVec MoveGenerator::generateAllMoves(const Game& game, const Player& player) const
+{
+    MoveVec result;
+    generatePawnMoves(game, player, result);
+    generateKingMoves(game, player, result);
+    generateKnightMoves(game, player, result);
+    generateBishopSliderMoves(game, player, result);
+    generateRookSliderMoves(game, player, result);
+    return std::move(result);
+}
+
+
+
+
+
+
+

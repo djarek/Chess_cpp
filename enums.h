@@ -3,17 +3,17 @@
 #include <cstdint>
 struct Position
 {
-    Position(uint8_t x, uint8_t y)
+    Position(int8_t x, int8_t y)
         :x(x)
         ,y(y) {}
     Position()
         :x(0)
         ,y(0) {}
-    uint8_t x, y;
-    uint8_t getVectorIndex() const {return 8*y+x;}
+    int8_t x, y;
+    int8_t getVectorIndex() const {return 8*y+x;}
 };
 bool operator!=(const Position& first, const Position& second);
-
+bool operator==(const Position& first, const Position& second);
 enum PieceType
 {
     Empty  = -1,

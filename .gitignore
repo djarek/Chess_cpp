@@ -22,3 +22,6 @@
 
 # Bin folder
 bin
+
+*.layout
+*.depend

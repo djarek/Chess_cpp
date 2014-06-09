@@ -31,10 +31,27 @@ struct GameBitState
     {
         return boards[piece.owner][piece.type];
     }
+    const BitBoard& getBitBoard(const Piece piece) const
+    {
+        return boards[piece.owner][piece.type];
+    }
     BitBoard& getBitBoard(const Player owner, const PieceType type)
     {
         return boards[owner][type];
     }
+
+    const BitBoard& getBitBoard(const Player owner, const PieceType type) const
+    {
+        return boards[owner][type];
+    }
+};
+
+enum State
+{
+    whiteWon   = 0,
+    blackWon   = 1,
+    draw       = 2,
+    inProgress = 3
 };
 
 Player getOtherPlayer(const Player otherPlayer);
@@ -47,10 +64,10 @@ public:
     ~Game();
     void resetGame();
     bool isMoveLegal(const Position& source, const Position& destination, MoveType& move);
-    bool makeMove(Position& source, Position& destination);
+    bool makeMove(const Position& source, const Position& destination, const bool mateCheck = true);
     bool spawnPiece(const PieceType type, const Position pos, const Player owner);
     CheckType isKingChecked(const Position& kingPos, const Player owner);
-    Position findPieceAtColumnRay(const Position& pos, bool up);
+    Position findPieceAtColumnRay(const Position& pos, bool up) const;
     Piece& getPiece(const uint8_t x, const uint8_t y)
     {
         #ifdef DEBUG
@@ -90,25 +107,29 @@ public:
     }
 
     Player whoMoves() const {return m_playerToMove;}
-    Position findPieceAtRowRay(const Position& pos, bool left);
-    Position findPieceAtMainDiagonalRay(const Position& pos, bool up);
-    Position findPieceAtAntiDiagonalRay(const Position& pos, bool up);
+    Position findPieceAtRowRay(const Position& pos, const bool left) const ;
+    Position findPieceAtMainDiagonalRay(const Position& pos, const bool up) const;
+    Position findPieceAtAntiDiagonalRay(const Position& pos, const bool up) const;
     void backupState();
     void restoreState();
     void clearState();
     void copyState(Piece* source, Piece* destination){std::copy(source, source+63, destination);}
-    bool isMated(CheckType check, Player player);
+    bool isMated(const CheckType check, const Player player);
+    State getGameStatus() const {return m_gameStatus;}
 private:
     Piece m_previousBoardState[64];
     Position m_previouslastPawnRush;
     GameBitState m_previousbitState;
     Position m_previousKingPos[2];
+    State m_previousgameStatus;
 
     Piece m_currentBoardState[64];
     Position m_lastPawnRush;
     GameBitState m_bitState;
     Position m_KingPos[2];
-    Player m_winner = Player::None;
+
+    State m_gameStatus;
+
     Player m_playerToMove = Player::White;
 };
 

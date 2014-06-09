@@ -13,6 +13,7 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-g" />
+					<Add option="-DDEBUG" />
 				</Compiler>
 			</Target>
 			<Target title="Release">
@@ -38,7 +39,6 @@
 			<Add option="-lSDL2" />
 			<Add option="-lSDL2_image" />
 		</Linker>
-		<Unit filename="./enums.h" />
 		<Unit filename="application.cpp" />
 		<Unit filename="application.h" />
 		<Unit filename="assetmanager.cpp" />
@@ -49,6 +49,7 @@
 		<Unit filename="board.h" />
 		<Unit filename="configmanager.cpp" />
 		<Unit filename="configmanager.h" />
+		<Unit filename="enums.h" />
 		<Unit filename="framework/widget.h" />
 		<Unit filename="game.cpp" />
 		<Unit filename="game.h" />

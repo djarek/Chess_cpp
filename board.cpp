@@ -89,7 +89,7 @@ void Board::onMouseButtonClick(const SDL_Event& event)
     {
         if(!m_leftMouseButtonPressed)//Started moving a piece
         {
-            if(g_Game.getPiece(getClickedPiecePosition(event.button.x, event.button.y)).type == PieceType::Empty || g_Game.getPiece(getClickedPiecePosition(event.button.x, event.button.y)).owner != g_Game.whoMoves())
+            if(g_Game.getGameStatus() != State::inProgress || g_Game.getPiece(getClickedPiecePosition(event.button.x, event.button.y)).type == PieceType::Empty || g_Game.getPiece(getClickedPiecePosition(event.button.x, event.button.y)).owner != g_Game.whoMoves())
             {
                 return;
             }

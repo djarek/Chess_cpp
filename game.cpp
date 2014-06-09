@@ -6,6 +6,11 @@ bool operator!=(const Position& first, const Position& second)
     return first.x != second.x || second.y != first.y;
 }
 
+bool operator==(const Position& first, const Position& second)
+{
+    return first.x == second.x && second.y == first.y;
+}
+
 Game::Game()
 {
     setMasks();
@@ -60,6 +65,7 @@ void Game::resetGame()
     Position p(7, 6);
         auto ret = findPieceAtColumnRay(p, false);
         std::cout << "ret"<< (int32_t)ret.x << (int32_t)ret.y << std::endl;
+    m_gameStatus = inProgress;
 }
 
 bool Game::isMoveLegal(const Position& source, const Position& destination, MoveType& move)
@@ -101,7 +107,6 @@ bool Game::isMoveLegal(const Position& source, const Position& destination, Move
             }
             else if(deltaY == 2*playerSign && !piece.hasMoved && deltaX == 0 && getPiece(source.x, source.y+1*playerSign).type == PieceType::Empty)
             {
-                m_lastPawnRush = destination;
                 move = MoveType::PawnRush;
                 return true;
             }
@@ -133,27 +138,41 @@ bool Game::isMoveLegal(const Position& source, const Position& destination, Move
         case PieceType::Bishop:
             if(deltaX/deltaY == 1)
             {
-                for(int8_t i = 1; i < std::max(deltaX, deltaY); ++i)
+                if(deltaY < 0)
                 {
-                    auto p = getPiece(source.x+i, source.y+i);
-
-                    if(p.type != PieceType::Empty)
+                    auto p = findPieceAtMainDiagonalRay(source, true);
+                    if(p.x <= destination.x || p == source)
+                        return true;
+                    else
                         return false;
-                    ++i;
                 }
-                return true;
+                else if(deltaY > 0)
+                {
+                    auto p = findPieceAtMainDiagonalRay(source, false);
+                    if(p.x >= destination.x || p == source)
+                        return true;
+                    else
+                        return false;
+                }
             }
             else if(deltaX/deltaY == -1)
             {
-                for(int8_t i = 1; i < std::min(deltaX, deltaY); --i)
+                if(deltaY < 0)
                 {
-                    auto p = getPiece(source.x+i, source.y+i);
-
-                    if(p.type != PieceType::Empty)
+                    auto p = findPieceAtAntiDiagonalRay(source, true);
+                    if(p.x >= destination.x  || p == source)
+                        return true;
+                    else
                         return false;
-                    ++i;
                 }
-                return true;
+                else if(deltaY > 0)
+                {
+                    auto p = findPieceAtAntiDiagonalRay(source, false);
+                    if(p.x <= destination.x || p == source)
+                        return true;
+                    else
+                        return false;
+                }
             }
             else
                 return false;
@@ -179,29 +198,43 @@ bool Game::isMoveLegal(const Position& source, const Position& destination, Move
                 }
                 return true;
             }
-            if(deltaX/deltaY == 1)
+            else if(deltaX/deltaY == 1)
             {
-                for(int8_t i = 1; i < std::max(deltaX, deltaY); ++i)
+                if(deltaY < 0)
                 {
-                    auto p = getPiece(source.x+i, source.y+i);
-
-                    if(p.type != PieceType::Empty)
+                    auto p = findPieceAtMainDiagonalRay(source, true);
+                    if(p.x <= destination.x || p == source)
+                        return true;
+                    else
                         return false;
-                    ++i;
                 }
-                return true;
+                else if(deltaY > 0)
+                {
+                    auto p = findPieceAtMainDiagonalRay(source, false);
+                    if(p.x >= destination.x || p == source)
+                        return true;
+                    else
+                        return false;
+                }
             }
             else if(deltaX/deltaY == -1)
             {
-                for(int8_t i = 1; i < std::min(deltaX, deltaY); --i)
+                if(deltaY < 0)
                 {
-                    auto p = getPiece(source.x+i, source.y+i);
-
-                    if(p.type != PieceType::Empty)
+                    auto p = findPieceAtAntiDiagonalRay(source, true);
+                    if(p.x >= destination.x  || p == source)
+                        return true;
+                    else
                         return false;
-                    ++i;
                 }
-                return true;
+                else if(deltaY > 0)
+                {
+                    auto p = findPieceAtAntiDiagonalRay(source, false);
+                    if(p.x <= destination.x || p == source)
+                        return true;
+                    else
+                        return false;
+                }
             }
             else
                 return false;
@@ -254,7 +287,7 @@ void Game::backupState()
     m_previouslastPawnRush = m_lastPawnRush;
     m_previousKingPos[0] = m_KingPos[0];
     m_previousKingPos[1] = m_KingPos[1];
-
+    m_previousgameStatus = m_gameStatus;
 }
 
 void Game::restoreState()
@@ -264,34 +297,55 @@ void Game::restoreState()
     m_lastPawnRush = m_previouslastPawnRush;
     m_KingPos[0] = m_previousKingPos[0];
     m_KingPos[1] = m_previousKingPos[1];
+    m_gameStatus = m_previousgameStatus;
 
 }
 
-bool Game::makeMove(Position& source, Position& destination)
+bool Game::makeMove(const Position& source, const Position& destination, const bool mateCheck)
 {
     MoveType move;
+    if(m_gameStatus != inProgress)
+        return false;
+    auto& sourcePiece = getPiece(source);
+    auto& destinationPiece = getPiece(destination);
     auto& sourceBitBoard = m_bitState.getBitBoard(getPiece(source));
     auto& destinationBitBoard = m_bitState.getBitBoard(getPiece(destination));
-    if(getPiece(source).owner == m_playerToMove && isMoveLegal(source, destination, move))
+    //If mateCheck is true (default value) we still perform legality checks, however
+    //if it's false we skip them (because it mean the function has been called with pre-generated moves anyway,
+    //so no need to check them again (the moving player is presumably the AI)
+    if(sourcePiece.owner == m_playerToMove && (!mateCheck || isMoveLegal(source, destination, move)))
     {
         backupState();
-        getPiece(source).hasMoved = true;
+        sourcePiece.hasMoved = true;
         if(move == MoveType::Move)
         {
+
             sourceBitBoard.setBitFalse(source.x, source.y);
-            sourceBitBoard.setBitTrue(destination.x, destination.y);
-            std::swap(getPiece(source), getPiece(destination));
+            if(sourcePiece.type == PieceType::Pawn && (destination.y == 0 || destination.y == 7))
+            {
+                m_bitState.getBitBoard(m_playerToMove, PieceType::Queen).setBitTrue(destination.x, destination.y);
+                sourcePiece.type = PieceType::Queen;
+            }
+            else
+                sourceBitBoard.setBitTrue(destination.x, destination.y);
+            std::swap(sourcePiece, destinationPiece);
             m_lastPawnRush = Position();
         }
         else if(move == MoveType::Capture)
         {
             sourceBitBoard.setBitFalse(source.x, source.y);
-            sourceBitBoard.setBitTrue(destination.x, destination.y);
+            if(sourcePiece.type == PieceType::Pawn && (destination.y == 0 || destination.y == 7))
+            {
+                m_bitState.getBitBoard(m_playerToMove, PieceType::Queen).setBitTrue(destination.x, destination.y);
+                sourcePiece.type = PieceType::Queen;
+            }
+            else
+                sourceBitBoard.setBitTrue(destination.x, destination.y);
 
             destinationBitBoard.setBitFalse(destination.x, destination.y);
 
-            std::swap(getPiece(source), getPiece(destination));
-            getPiece(source) = Piece();
+            std::swap(sourcePiece, destinationPiece);
+            sourcePiece = Piece();
             m_lastPawnRush = Position();
         }
         else if(move == MoveType::PawnRush)
@@ -299,14 +353,14 @@ bool Game::makeMove(Position& source, Position& destination)
             sourceBitBoard.setBitFalse(source.x, source.y);
             sourceBitBoard.setBitTrue(destination.x, destination.y);
             m_lastPawnRush = destination;
-            std::swap(getPiece(source), getPiece(destination));
+            std::swap(sourcePiece, destinationPiece);
         }
         else if(move == MoveType::EnPassant)
         {
             sourceBitBoard.setBitFalse(source.x, source.y);
             sourceBitBoard.setBitTrue(destination.x, destination.y);
-            std::swap(getPiece(source), getPiece(destination));
-            if(getPiece(destination).owner == Player::White)
+            std::swap(sourcePiece, destinationPiece);
+            if(destinationPiece.owner == Player::White)
             {
                 auto& capturedPawn = getPiece(destination.x, destination.y + 1);
                 m_bitState.getBitBoard(capturedPawn).setBitFalse(destination.x, destination.y + 1);
@@ -324,10 +378,10 @@ bool Game::makeMove(Position& source, Position& destination)
         {
             sourceBitBoard.setBitFalse(source.x, source.y);
             sourceBitBoard.setBitTrue(destination.x, destination.y);
-            auto& rookBitBoard = m_bitState.getBitBoard(getPiece(source).owner, PieceType::Rook);
+            auto& rookBitBoard = m_bitState.getBitBoard(sourcePiece.owner, PieceType::Rook);
             rookBitBoard.setBitFalse(7, source.y);
             rookBitBoard.setBitTrue(5, destination.y);
-            std::swap(getPiece(source), getPiece(destination));
+            std::swap(sourcePiece, destinationPiece);
             std::swap(getPiece(7, source.y), getPiece(5, source.y));
             m_lastPawnRush = Position();
         }
@@ -335,10 +389,10 @@ bool Game::makeMove(Position& source, Position& destination)
         {
             sourceBitBoard.setBitFalse(source.x, source.y);
             sourceBitBoard.setBitTrue(destination.x, destination.y);
-            auto& rookBitBoard = m_bitState.getBitBoard(getPiece(source).owner, PieceType::Rook);
+            auto& rookBitBoard = m_bitState.getBitBoard(sourcePiece.owner, PieceType::Rook);
             rookBitBoard.setBitFalse(0, source.y);
             rookBitBoard.setBitTrue(3, destination.y);
-            std::swap(getPiece(source), getPiece(destination));
+            std::swap(sourcePiece, destinationPiece);
             std::swap(getPiece(0, source.y), getPiece(3, source.y));
             m_lastPawnRush = Position();
         }
@@ -346,7 +400,7 @@ bool Game::makeMove(Position& source, Position& destination)
         {
             m_KingPos[m_playerToMove] = destination;
         }
-        if(isKingChecked(m_KingPos[m_playerToMove], m_playerToMove))
+        if(mateCheck && isKingChecked(m_KingPos[m_playerToMove], m_playerToMove))
         {
             restoreState();
             return false;
@@ -355,6 +409,11 @@ bool Game::makeMove(Position& source, Position& destination)
             m_playerToMove = Player::Black;
         else
             m_playerToMove = Player::White;
+        if(mateCheck && isMated(isKingChecked(m_KingPos[m_playerToMove], m_playerToMove), m_playerToMove))
+        {
+            std::cout << ((m_playerToMove == Player::White) ? std::string("Black") : std::string("White")) << "won!" << std::endl;
+            m_gameStatus = static_cast<State>(getOtherPlayer(m_playerToMove));
+        }
         return true;
     }
     else
@@ -382,7 +441,7 @@ uint8_t getVectorIndex(const uint8_t x, const uint8_t y)
     return 8*y+x;
 }
 
-Position Game::findPieceAtColumnRay(const Position& pos, bool up)
+Position Game::findPieceAtColumnRay(const Position& pos, const bool up) const
 {
     Position ret;
     ret.x = pos.x;
@@ -412,7 +471,7 @@ Position Game::findPieceAtColumnRay(const Position& pos, bool up)
     return ret;
 }
 
-Position Game::findPieceAtMainDiagonalRay(const Position& pos, bool up)
+Position Game::findPieceAtMainDiagonalRay(const Position& pos, const bool up) const
 {
     Position ret;
     ret.x = pos.x;
@@ -420,8 +479,8 @@ Position Game::findPieceAtMainDiagonalRay(const Position& pos, bool up)
 
     if(up)
     {
-        int8_t minCoordinate = std::min(pos.x,pos.y);
-        for(int8_t i = 1; i <= minCoordinate; ++i)
+        int8_t moves = numberOfMovesMainDiagonalUp[pos.x][pos.y];
+        for(int8_t i = 1; i <= moves; ++i)
         {
             if(getPiece(pos.x-i, pos.y-i).type != PieceType::Empty)
             {
@@ -433,8 +492,8 @@ Position Game::findPieceAtMainDiagonalRay(const Position& pos, bool up)
     }
     else
     {
-        int8_t maxCoordinate = 7-std::max(pos.x,pos.y);
-        for(int8_t i = 1; i <= maxCoordinate; ++i)
+        int8_t moves = numberOfMovesMainDiagonalDown[pos.x][pos.y];
+        for(int8_t i = 1; i <= moves; ++i)
         {
 
             if(getPiece(pos.x+i, pos.y+i).type != PieceType::Empty)
@@ -448,7 +507,7 @@ Position Game::findPieceAtMainDiagonalRay(const Position& pos, bool up)
     return ret;
 }
 
-Position Game::findPieceAtAntiDiagonalRay(const Position& pos, bool up)
+Position Game::findPieceAtAntiDiagonalRay(const Position& pos, const bool up) const
 {
     Position ret;
     ret.x = pos.x;
@@ -456,7 +515,7 @@ Position Game::findPieceAtAntiDiagonalRay(const Position& pos, bool up)
 
     if(up)
     {
-        int8_t moves = numberOfMovesDiagonalUp[pos.x][pos.y];
+        int8_t moves = numberOfMovesAntiDiagonalUp[pos.x][pos.y];
         for(int8_t i = 1; i <= moves; ++i)
         {
             if(getPiece(pos.x+i, pos.y-i).type != PieceType::Empty)
@@ -469,7 +528,7 @@ Position Game::findPieceAtAntiDiagonalRay(const Position& pos, bool up)
     }
     else
     {
-        int8_t moves = numberOfMovesDiagonalDown[pos.x][pos.y];
+        int8_t moves = numberOfMovesAntiDiagonalDown[pos.x][pos.y];
         for(int8_t i = 1; i <= moves; ++i)
         {
 
@@ -484,7 +543,7 @@ Position Game::findPieceAtAntiDiagonalRay(const Position& pos, bool up)
     return ret;
 }
 
-Position Game::findPieceAtRowRay(const Position& pos, bool left)
+Position Game::findPieceAtRowRay(const Position& pos, const bool left) const
 {
     Position ret;
     ret.x = pos.x;
@@ -517,6 +576,7 @@ Position Game::findPieceAtRowRay(const Position& pos, bool left)
 CheckType Game::isKingChecked(const Position& kingPos, const Player owner)
 {
     uint8_t check = 0;
+    #ifdef DEBUG
     BitBoard board;
     for(int8_t player = Player::White; player <= Player::Black; ++player)
     {
@@ -525,8 +585,9 @@ CheckType Game::isKingChecked(const Position& kingPos, const Player owner)
             board.getBoard() |= m_bitState.getBitBoard(static_cast<Player>(player), static_cast<PieceType>(pieceType)).getBoard();
         }
     }
-
     printBitBoard(board);
+    #endif //DEBUG
+
     auto blockingPiece = getPiece(findPieceAtColumnRay(kingPos, true));
 
     if(blockingPiece.owner != owner && (blockingPiece.type == PieceType::Rook || blockingPiece.type == PieceType::Queen))
@@ -558,15 +619,15 @@ CheckType Game::isKingChecked(const Position& kingPos, const Player owner)
     if(blockingPiece.owner != owner && (blockingPiece.type == PieceType::Bishop || blockingPiece.type == PieceType::Queen))
         ++check;
 
-    if((getPawnAttackersAt(kingPos.x, kingPos.y, owner)
+    if((g_MoveGenerator.getPawnAttackersAt(kingPos.x, kingPos.y, owner)
       & m_bitState.getBitBoard(getOtherPlayer(owner), PieceType::Pawn)).getBoard())
         ++check;
 
-    if((getKnightAttackersAt(kingPos.x, kingPos.y)
+    if((g_MoveGenerator.getKnightAttackersAt(kingPos.x, kingPos.y)
       & m_bitState.getBitBoard(getOtherPlayer(owner), PieceType::Knight)).getBoard())
         ++check;
 
-    if((getKingAttackerAt(kingPos.x, kingPos.y)
+    if((g_MoveGenerator.getKingAttackerAt(kingPos.x, kingPos.y)
       & m_bitState.getBitBoard(getOtherPlayer(owner), PieceType::King)).getBoard())
         ++check;
     return static_cast<CheckType>(check);
@@ -577,19 +638,40 @@ Player getOtherPlayer(const Player otherPlayer)
     return static_cast<Player> (!otherPlayer);
 }
 
-bool Game::isMated(CheckType check, Player player)
+bool Game::isMated(const CheckType check, const Player player)
 {
-    if(check == CheckType::DoubleCheck)
+    MoveVec moves;
+    if(check == CheckType::NoCheck)
+        return false;
+    else if(check == CheckType::DoubleCheck)
     {
-        MoveVec kingMoves;
-        g_MoveGenerator.generateKingMoves(*this, player, kingMoves);
-        if(kingMoves.size() > 0)
-            return false;
+        g_MoveGenerator.generateKingMoves(*this, player, moves);
+        if(moves.size() == 0)
+            return true;
+        for(const auto& move : moves)
+        {
+            if(makeMove(move.fromPos, move.toPos, false))
+            {
+                restoreState();
+                m_playerToMove = getOtherPlayer(m_playerToMove);
+                return false;
+            }
+            restoreState();
+            m_playerToMove = getOtherPlayer(m_playerToMove);
+        }
     }
     else if(check == CheckType::SingleCheck)
     {
-        //if(getMoveList(player).size() > 0)
-        //    return false;
+        moves = std::move(g_MoveGenerator.generateAllMoves(*this, m_playerToMove));
+        for(const auto& move : moves)
+        {
+            if(makeMove(move.fromPos, move.toPos, false))
+            {
+                restoreState();
+                m_playerToMove = getOtherPlayer(m_playerToMove);
+                return false;
+            }
+        }
     }
     return true;
 }
