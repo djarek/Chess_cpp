@@ -76,7 +76,7 @@ void MainWindow::eventLoop()
             }
         }
         paint();
-        SDL_Delay(16.67);
+        SDL_Delay(33);
     }
 }
 
@@ -90,13 +90,6 @@ bool MainWindow::init()
     return true;
 }
 
-bool isPointInRect(SDL_Rect& rect, int32_t x, int32_t y)
-{
-    if(x > rect.x && x < rect.w + rect.x && y > rect.y && y < rect.h + rect.y)
-        return true;
-    else
-        return false;
-}
 void MainWindow::onMouseButtonClick(const SDL_Event& event)
 {
     SDL_Rect rect, mouse_rect;
@@ -109,7 +102,6 @@ void MainWindow::onMouseButtonClick(const SDL_Event& event)
             mouse_rect.w = mouse_rect.h = 1;
             rect = widget->getRect();
             if(SDL_HasIntersection(&rect, &mouse_rect))
-            //if(isPointInRect(rect, event.button.x, event.button.y))
                 widget->onMouseButtonClick(event);
         }
     }

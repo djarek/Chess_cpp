@@ -12,8 +12,9 @@ class AIEngine
 public:
     void init(){}
     void makeMove(Game& game, const Player& player);
-    static int64_t evaluateBoard(const Game& game, const Player& player);
-    std::pair<int64_t, struct Move> negamax(Game& game, const Player& player, int32_t depth, int64_t alpha, int64_t beta);
+    static int64_t evaluateBoard(const Game& game);
+    struct Move negamax(Game& game, const Player& player, int32_t depth, int32_t alpha, int32_t beta);
+    int32_t negamax_inner(Game& game, const Player& player, int32_t depth, int32_t alpha, int32_t beta);
 private:
 };
 #endif // AI_H_INCLUDED
