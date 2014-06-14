@@ -98,8 +98,10 @@ bool Game::isMoveLegal(const Position& source, const Position& destination, Move
                     else
                         return false;
                 }
-                else if(deltaX == 0)
+                else if(deltaX == 0 && targetPiece.type == PieceType::Empty)
                     return true;
+                else
+                    return false;
             }
             else if(deltaY == 2*playerSign && !piece.hasMoved && deltaX == 0 && getPiece(source.x, source.y+1*playerSign).type == PieceType::Empty)
             {
@@ -297,6 +299,116 @@ void Game::restoreState()
 
 }
 
+bool Game::makeMove(const struct Move move)
+{
+    if(m_gameStatus != inProgress)
+        return false;
+    const auto& source = move.fromPos;
+    const auto& destination = move.toPos;
+    auto& sourcePiece = getPiece(source);
+    auto& destinationPiece = getPiece(destination);
+    auto& sourceBitBoard = m_bitState.getBitBoard(getPiece(source));
+    auto& destinationBitBoard = m_bitState.getBitBoard(getPiece(destination));
+    //If mateCheck is true (default value) we still perform legality checks, however
+    //if it's false we skip them (because it mean the function has been called with pre-generated moves anyway,
+    //so no need to check them again (the moving player is presumably the AI)
+    if(sourcePiece.owner == m_playerToMove)
+    {
+        backupState();
+        sourcePiece.hasMoved = true;
+        if(move.type == MoveType::Move)
+        {
+
+            sourceBitBoard.setBitFalse(source.x, source.y);
+            if(sourcePiece.type == PieceType::Pawn && (destination.y == 0 || destination.y == 7))
+            {
+                m_bitState.getBitBoard(m_playerToMove, PieceType::Queen).setBitTrue(destination.x, destination.y);
+                sourcePiece.type = PieceType::Queen;
+            }
+            else
+                sourceBitBoard.setBitTrue(destination.x, destination.y);
+            std::swap(sourcePiece, destinationPiece);
+            m_lastPawnRush = Position();
+        }
+        else if(move.type == MoveType::Capture)
+        {
+            sourceBitBoard.setBitFalse(source.x, source.y);
+            if(sourcePiece.type == PieceType::Pawn && (destination.y == 0 || destination.y == 7))
+            {
+                m_bitState.getBitBoard(m_playerToMove, PieceType::Queen).setBitTrue(destination.x, destination.y);
+                sourcePiece.type = PieceType::Queen;
+            }
+            else
+                sourceBitBoard.setBitTrue(destination.x, destination.y);
+
+            destinationBitBoard.setBitFalse(destination.x, destination.y);
+
+            std::swap(sourcePiece, destinationPiece);
+            sourcePiece = Piece();
+            m_lastPawnRush = Position();
+        }
+        else if(move.type == MoveType::PawnRush)
+        {
+            sourceBitBoard.setBitFalse(source.x, source.y);
+            sourceBitBoard.setBitTrue(destination.x, destination.y);
+            m_lastPawnRush = destination;
+            std::swap(sourcePiece, destinationPiece);
+        }
+        else if(move.type == MoveType::EnPassant)
+        {
+            sourceBitBoard.setBitFalse(source.x, source.y);
+            sourceBitBoard.setBitTrue(destination.x, destination.y);
+            std::swap(sourcePiece, destinationPiece);
+            if(destinationPiece.owner == Player::White)
+            {
+                auto& capturedPawn = getPiece(destination.x, destination.y + 1);
+                m_bitState.getBitBoard(capturedPawn).setBitFalse(destination.x, destination.y + 1);
+                capturedPawn = Piece();
+            }
+            else
+            {
+                auto& capturedPawn = getPiece(destination.x, destination.y - 1);
+                m_bitState.getBitBoard(capturedPawn).setBitFalse(destination.x, destination.y - 1);
+                capturedPawn = Piece();
+            }
+            m_lastPawnRush = Position();
+        }
+        else if(move.type == MoveType::KingSideCastling)
+        {
+            sourceBitBoard.setBitFalse(source.x, source.y);
+            sourceBitBoard.setBitTrue(destination.x, destination.y);
+            auto& rookBitBoard = m_bitState.getBitBoard(sourcePiece.owner, PieceType::Rook);
+            rookBitBoard.setBitFalse(7, source.y);
+            rookBitBoard.setBitTrue(5, destination.y);
+            std::swap(sourcePiece, destinationPiece);
+            std::swap(getPiece(7, source.y), getPiece(5, source.y));
+            m_lastPawnRush = Position();
+        }
+        else if(move.type == MoveType::QueenSideCastling)
+        {
+            sourceBitBoard.setBitFalse(source.x, source.y);
+            sourceBitBoard.setBitTrue(destination.x, destination.y);
+            auto& rookBitBoard = m_bitState.getBitBoard(sourcePiece.owner, PieceType::Rook);
+            rookBitBoard.setBitFalse(0, source.y);
+            rookBitBoard.setBitTrue(3, destination.y);
+            std::swap(sourcePiece, destinationPiece);
+            std::swap(getPiece(0, source.y), getPiece(3, source.y));
+            m_lastPawnRush = Position();
+        }
+        if(getPiece(destination).type == PieceType::King)
+        {
+            m_KingPos[m_playerToMove] = destination;
+        }
+
+        m_playerToMove = getOtherPlayer(m_playerToMove);
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
 bool Game::makeMove(const Position& source, const Position& destination, const bool mateCheck)
 {
     MoveType move;
@@ -309,7 +421,7 @@ bool Game::makeMove(const Position& source, const Position& destination, const b
     //If mateCheck is true (default value) we still perform legality checks, however
     //if it's false we skip them (because it mean the function has been called with pre-generated moves anyway,
     //so no need to check them again (the moving player is presumably the AI)
-    if(sourcePiece.owner == m_playerToMove && (!mateCheck || isMoveLegal(source, destination, move)))
+    if(sourcePiece.owner == m_playerToMove && (isMoveLegal(source, destination, move)))
     {
         backupState();
         sourcePiece.hasMoved = true;
@@ -401,14 +513,21 @@ bool Game::makeMove(const Position& source, const Position& destination, const b
             restoreState();
             return false;
         }
-        if(m_playerToMove == Player::White)
-            m_playerToMove = Player::Black;
-        else
-            m_playerToMove = Player::White;
+
+        m_playerToMove = getOtherPlayer(m_playerToMove);
         if(mateCheck && isMated(isKingChecked(m_KingPos[m_playerToMove], m_playerToMove), m_playerToMove))
         {
-            std::cout << ((m_playerToMove == Player::White) ? std::string("Black") : std::string("White")) << "won!" << std::endl;
+            //std::cout << ((m_playerToMove == Player::White) ? std::string("Black") : std::string("White")) << "won!" << std::endl;
             m_gameStatus = static_cast<State>(getOtherPlayer(m_playerToMove));
+            return true;
+        }
+        #ifdef DEBUG_LOG
+        std::cout << "Board value for White: " << AIEngine::evaluateBoard(*this, Player::White) << std::endl;
+        std::cout << "Board value for Black: " << AIEngine::evaluateBoard(*this, Player::Black) << std::endl;
+        #endif
+        if(&g_Game == this && mateCheck && m_players[m_playerToMove] == AI)
+        {
+            g_AIEngine.makeMove(*this, m_playerToMove);
         }
         return true;
     }
@@ -572,7 +691,7 @@ Position Game::findPieceAtRowRay(const Position& pos, const bool left) const
 CheckType Game::isKingChecked(const Position& kingPos, const Player owner)
 {
     uint8_t check = 0;
-    #ifdef DEBUG
+    #ifdef DEBUG_LOG
     BitBoard board;
     for(int8_t player = Player::White; player <= Player::Black; ++player)
     {
@@ -650,7 +769,7 @@ bool Game::isMated(const CheckType check, const Player player)
             {
                 restoreState();
                 m_playerToMove = getOtherPlayer(m_playerToMove);
-                #ifdef DEBUG
+                #ifdef DEBUG_LOG
                 std::cout << "Found move: frompos= " << move.fromPos.x
                           << " " << move.fromPos.y << " topos= " << move.toPos.x
                           << " " << move.toPos.y << std::endl;
@@ -669,7 +788,7 @@ bool Game::isMated(const CheckType check, const Player player)
             if(makeMove(move.fromPos, move.toPos, false))
             {
                 restoreState();
-                #ifdef DEBUG
+                #ifdef DEBUG_LOG
                 std::cout << "Found move: frompos= " << (int32_t)move.fromPos.x
                           << " " << (int32_t)move.fromPos.y << " topos= " << (int32_t)move.toPos.x
                           << " " << (int32_t)move.toPos.y << std::endl;
@@ -680,4 +799,16 @@ bool Game::isMated(const CheckType check, const Player player)
         }
     }
     return true;
+}
+
+Game& Game::operator=(const Game& other)
+{
+    m_bitState = other.m_bitState;
+    std::copy(other.m_currentBoardState, other.m_currentBoardState+63, m_currentBoardState);
+    m_lastPawnRush = other.m_lastPawnRush;
+    m_KingPos[0]  = other.m_KingPos[0];
+    m_KingPos[1]  = other.m_KingPos[1];
+    m_gameStatus = other.m_gameStatus;
+    m_playerToMove = other.m_playerToMove;
+    return *this;
 }

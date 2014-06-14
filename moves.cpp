@@ -559,14 +559,14 @@ void MoveGenerator::generateBishopSliderMoves(const Game& game, const Player& pl
             result.push_back(newMove);
         }
 
-        moveNum = numberOfMovesAntiDiagonalUp[bishopPos.x][bishopPos.y];
+        moveNum = numberOfMovesAntiDiagonalDown[bishopPos.x][bishopPos.y];
         for(int8_t i = 1; i <= moveNum; ++i)
         {
             struct Move newMove;
             newMove.fromPos = bishopPos;
             newMove.toPos.x = bishopPos.x-i;
             newMove.toPos.y = bishopPos.y+i;
-            const auto& piece = game.getPiece(bishopPos.x+i, bishopPos.y-i);
+            const auto& piece = game.getPiece(bishopPos.x-i, bishopPos.y+i);
             if(piece.type != PieceType::Empty)
             {
                 if(piece.owner != player)
@@ -592,10 +592,3 @@ MoveVec MoveGenerator::generateAllMoves(const Game& game, const Player& player) 
     generateRookSliderMoves(game, player, result);
     return std::move(result);
 }
-
-
-
-
-
-
-

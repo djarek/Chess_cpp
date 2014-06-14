@@ -11,12 +11,14 @@ ConfigManager g_ConfigManager;
 Game g_Game;
 MoveGenerator g_MoveGenerator;
 AssetManager g_AssetManager;
+AIEngine g_AIEngine;
 
 int main(int argc, char** argv)
 {
     g_MoveGenerator.init();
     g_ConfigManager.loadConfig();
     g_Application.init(argc, argv);
+    g_AIEngine.init();
     g_Application.run();
     printf("Exited cleanly\n");
     return 0;

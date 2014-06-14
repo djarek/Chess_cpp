@@ -39,8 +39,15 @@ enum CheckType
     DoubleCheck = 2
 };
 
+enum PlayerType
+{
+    Human = 0,
+    AI    = 1
+};
+
 enum MoveType
 {
+    GiveUp    = -1,
     NoMove    = 0,
     Move      = 1,
     PawnRush  = 2,

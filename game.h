@@ -6,7 +6,8 @@
 #include "bitboard.h"
 #include "moves.h"
 #include "enums.h"
-
+#include "ai.h"
+#include <iostream>
 uint8_t getVectorIndex(const uint8_t x, const uint8_t y);
 
 const std::string PIECE_NAMES[]={"pawn", "rook", "knight", "bishop", "queen", "king"};
@@ -51,7 +52,9 @@ enum State
     whiteWon   = 0,
     blackWon   = 1,
     draw       = 2,
-    inProgress = 3
+    inProgress = 3,
+    whiteGaveUp= 4,
+    blackGaveUp= 5
 };
 
 Player getOtherPlayer(const Player otherPlayer);
@@ -60,29 +63,36 @@ class Game
 {
 public:
     friend class MoveGenerator;
+    friend class AIEngine;
     Game();
     ~Game();
     void resetGame();
     bool isMoveLegal(const Position& source, const Position& destination, MoveType& move);
     bool makeMove(const Position& source, const Position& destination, const bool mateCheck = true);
     bool spawnPiece(const PieceType type, const Position pos, const Player owner);
+    void giveUp(const Player player) {m_gameStatus = (player == Player::White) ? whiteGaveUp: blackGaveUp; std::cout << "Player gave up." << std::endl;}
     CheckType isKingChecked(const Position& kingPos, const Player owner);
     Position findPieceAtColumnRay(const Position& pos, bool up) const;
     Piece& getPiece(const uint8_t x, const uint8_t y)
     {
-        #ifdef DEBUG
+        #ifdef DEBUG_LOG
         if (x > 8 || y > 8)
+        {
+            std::cout << "GetPiece() at "<< (uint32_t)x << " " << (uint32_t)y << std::endl;
             throw;
+        }
         #endif
         return m_currentBoardState[getVectorIndex(x, y)];
-
     }
 
     const Piece& getPiece(const uint8_t x, const uint8_t y) const
     {
-        #ifdef DEBUG
+        #ifdef DEBUG_LOG
         if (x > 8 || y > 8)
+        {
+            std::cout << "GetPiece() at "<< (uint32_t)x << " " << (uint32_t)y << std::endl;
             throw;
+        }
         #endif
         return m_currentBoardState[getVectorIndex(x, y)];
 
@@ -90,18 +100,24 @@ public:
 
     Piece& getPiece(const Position pos)
     {
-        #ifdef DEBUG
+        #ifdef DEBUG_LOG
         if (pos.x > 8 || pos.y > 8)
+        {
+            std::cout << "GetPiece() at "<< (uint32_t)pos.x << " " << (uint32_t)pos.y << std::endl;
             throw;
+        }
         #endif
         return m_currentBoardState[getVectorIndex(pos.x, pos.y)];
     }
 
     const Piece& getPiece(const Position pos) const
     {
-        #ifdef DEBUG
+        #ifdef DEBUG_LOG
         if (pos.x > 8 || pos.y > 8)
+        {
+            std::cout << "GetPiece() at "<< (uint32_t)pos.x << " " << (uint32_t)pos.y << std::endl;
             throw;
+        }
         #endif
         return m_currentBoardState[getVectorIndex(pos.x, pos.y)];
     }
@@ -116,6 +132,8 @@ public:
     void copyState(Piece* source, Piece* destination){std::copy(source, source+63, destination);}
     bool isMated(const CheckType check, const Player player);
     State getGameStatus() const {return m_gameStatus;}
+    Game& operator=(const Game& other);
+    bool makeMove(const struct Move move);
 private:
     Piece m_previousBoardState[64];
     Position m_previouslastPawnRush;
@@ -131,6 +149,8 @@ private:
     State m_gameStatus;
 
     Player m_playerToMove = Player::White;
+
+    PlayerType m_players[2] = {Human, AI};
 };
 
 
