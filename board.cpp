@@ -28,7 +28,7 @@ void Board::paint()
     rect.h = rect.w = getTileSize();
     uint8_t x = 0, y = 0;
     uint8_t colors[] ={150, 255};
-
+    std::lock_guard<std::mutex> lock(g_Game_mutex);
     for(uint8_t i = 0; i < 8; ++i)
     {
         for(uint8_t j = 0; j < 8; ++j)
@@ -89,7 +89,7 @@ void Board::onMouseButtonClick(const SDL_Event& event)
     {
         if(!m_leftMouseButtonPressed)//Started moving a piece
         {
-            if(g_Game.getGameStatus() != State::inProgress || g_Game.getPiece(getClickedPiecePosition(event.button.x, event.button.y)).type == PieceType::Empty || g_Game.getPiece(getClickedPiecePosition(event.button.x, event.button.y)).owner != g_Game.whoMoves())
+            if(g_Game.getGameStatus() != State::inProgress || g_Game.getPiece(getClickedPiecePosition(event.button.x, event.button.y)).type == PieceType::Empty || g_Game.getPiece(getClickedPiecePosition(event.button.x, event.button.y)).owner != g_Game.whoMoves() || g_Game.isCurrentPlayerAI())
             {
                 return;
             }
@@ -122,6 +122,8 @@ void Board::onMouseMove(const SDL_Event& event)
 void Board::makeMove()
 {
     auto newPos = getClickedPiecePosition(m_mousePosition);
-    if(newPos != m_movedPiece)
+    if(newPos != m_movedPiece){
+        std::lock_guard<std::mutex> lock(g_Game_mutex);
         g_Game.makeMove(m_movedPiece, newPos);
+    }
 }

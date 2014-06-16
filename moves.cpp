@@ -221,13 +221,6 @@ BitBoard BOTTOM_LEFT_DIAGONAL(
 ((uint64_t)1 << 7*8)
 );
 
-void test()
-{
-
-    auto bb = KING_MOVES;
-    printBitBoard(bb);
-}
-
 const int8_t knightDeltaX[] = {-2, -2, -1, -1, 1,  1,  2, 2};
 const int8_t knightDeltaY[] = {-1,  1, -2,  2, 2, -2, -1, 1};
 

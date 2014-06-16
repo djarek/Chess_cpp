@@ -6,7 +6,7 @@ void ConfigManager::loadConfig()
     configMap["defaultWindowHeight"] = (int32_t)640;
     configMap["defaultWindowXPos"] = (int32_t)0;
     configMap["defaultWindowYPos"] = (int32_t)0;
-    configMap["defaultWindowName"] = "Szachuj";
+    configMap["defaultWindowName"] = "(Prawie) Mistrz Szachow";
     configMap["black_pawn_Path"] = "textures/black_pawn.png";
     configMap["white_pawn_Path"] = "textures/white_pawn.png";
 

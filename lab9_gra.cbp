@@ -39,8 +39,8 @@
 			<Add option="-lSDL2" />
 			<Add option="-lSDL2_image" />
 		</Linker>
-		<Unit filename="./ai.cpp" />
-		<Unit filename="./ai.h" />
+		<Unit filename="ai.cpp" />
+		<Unit filename="ai.h" />
 		<Unit filename="application.cpp" />
 		<Unit filename="application.h" />
 		<Unit filename="assetmanager.cpp" />
@@ -61,6 +61,8 @@
 		<Unit filename="mainwindow.h" />
 		<Unit filename="moves.cpp" />
 		<Unit filename="moves.h" />
+		<Unit filename="transposition_table.cpp" />
+		<Unit filename="transposition_table.h" />
 		<Extensions>
 			<code_completion />
 			<debugger />

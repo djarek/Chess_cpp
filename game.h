@@ -8,10 +8,12 @@
 #include "enums.h"
 #include "ai.h"
 #include <iostream>
+#include <mutex>
+
 uint8_t getVectorIndex(const uint8_t x, const uint8_t y);
 
 const std::string PIECE_NAMES[]={"pawn", "rook", "knight", "bishop", "queen", "king"};
-
+const std::string PLAYER_NAMES[]={"White", "Black"};
 struct Piece
 {
     Piece()
@@ -58,19 +60,23 @@ enum State
 };
 
 Player getOtherPlayer(const Player otherPlayer);
+class AIEngine;
+extern AIEngine AIPlayers[2];
 
 class Game
 {
 public:
     friend class MoveGenerator;
     friend class AIEngine;
+    friend uint64_t getZobristHash(const Game& game);
     Game();
+    Game(const Game& other);
     ~Game();
     void resetGame();
     bool isMoveLegal(const Position& source, const Position& destination, MoveType& move);
     bool makeMove(const Position& source, const Position& destination, const bool mateCheck = true);
     bool spawnPiece(const PieceType type, const Position pos, const Player owner);
-    void giveUp(const Player player) {m_gameStatus = (player == Player::White) ? whiteGaveUp: blackGaveUp; std::cout << "Player gave up." << std::endl;}
+    void giveUp(const Player& player) {m_gameStatus = (player == Player::White) ? whiteGaveUp: blackGaveUp; std::cout << "Player" << PLAYER_NAMES[player] << "gave up." << std::endl;}
     CheckType isKingChecked(const Position& kingPos, const Player owner);
     Position findPieceAtColumnRay(const Position& pos, bool up) const;
     Piece& getPiece(const uint8_t x, const uint8_t y)
@@ -100,7 +106,7 @@ public:
 
     Piece& getPiece(const Position pos)
     {
-        #ifdef DEBUG_LOG
+        #ifdef DEBUG
         if (pos.x > 8 || pos.y > 8)
         {
             std::cout << "GetPiece() at "<< (uint32_t)pos.x << " " << (uint32_t)pos.y << std::endl;
@@ -112,7 +118,7 @@ public:
 
     const Piece& getPiece(const Position pos) const
     {
-        #ifdef DEBUG_LOG
+        #ifdef DEBUG
         if (pos.x > 8 || pos.y > 8)
         {
             std::cout << "GetPiece() at "<< (uint32_t)pos.x << " " << (uint32_t)pos.y << std::endl;
@@ -129,11 +135,12 @@ public:
     void backupState();
     void restoreState();
     void clearState();
-    void copyState(Piece* source, Piece* destination){std::copy(source, source+63, destination);}
+    void copyState(Piece* source, Piece* destination){std::copy(source, source+64, destination);}
     bool isMated(const CheckType check, const Player player);
     State getGameStatus() const {return m_gameStatus;}
     Game& operator=(const Game& other);
     bool makeMove(const struct Move move);
+    bool isCurrentPlayerAI(){return m_players[m_playerToMove] == AI;}
 private:
     Piece m_previousBoardState[64];
     Position m_previouslastPawnRush;
@@ -150,7 +157,7 @@ private:
 
     Player m_playerToMove = Player::White;
 
-    PlayerType m_players[2] = {Human, AI};
+    PlayerType m_players[2] = {AI, AI};
 };
 
 

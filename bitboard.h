@@ -16,6 +16,8 @@ public:
     uint64_t& getBoard() {return m_board;}
     uint64_t operator<<(uint8_t n);
     uint64_t operator>>(uint8_t n);
+    uint64_t operator^(const uint64_t& other)const {return m_board ^ other;}
+    uint64_t operator^(const BitBoard& other)const {return m_board ^ other.m_board;}
     uint64_t safeLeftShift();
     uint64_t safeRightShift();
     uint64_t operator[](uint8_t i){return m_board & ((uint64_t)1 << i);}

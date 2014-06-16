@@ -1,5 +1,4 @@
 #include "bitboard.h"
-#include <iostream>
 
 uint64_t BitBoard::bitMasks[8][8];
 
@@ -89,6 +88,7 @@ uint64_t BitBoard::safeLeftShift()
     return m_board;
 }
 
+/*
 void printBitBoard(BitBoard& bb)
 {
     std::cout << std::endl;
@@ -102,4 +102,4 @@ void printBitBoard(BitBoard& bb)
         }
     }
     std::cout << std::endl;
-}
+}*/

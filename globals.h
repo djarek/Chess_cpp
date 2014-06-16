@@ -11,4 +11,5 @@ extern Game g_Game;
 extern MoveGenerator g_MoveGenerator;
 extern AssetManager g_AssetManager;
 extern AIEngine g_AIEngine;
+extern std::mutex g_Game_mutex;
 #endif // GLOBALS_H_INCLUDED
