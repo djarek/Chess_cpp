@@ -25,3 +25,6 @@ bin
 
 *.layout
 *.depend
+.kdev4
+*.kdev4
+build

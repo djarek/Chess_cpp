@@ -117,12 +117,12 @@ void AIEngine::dispatcherLoop()
             makeMove(*game_Ptr, playerToMove);
             game_Ptr = nullptr;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
 }
 void AIEngine::makeMove(Game& game, const Player& player)
 {
-    auto ret = negamax (game, player, INITIAL_DEPTH,
+    auto ret = negamax(game, player, INITIAL_DEPTH,
                         MINUS_INF,
                         PLUS_INF);
     std::lock_guard<std::mutex> lock(g_Game_mutex);
